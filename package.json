@@ -1,0 +1,23 @@
+{
+  "name": "api-reference-workspace",
+  "module": "example/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run build && bun i && bun run --cwd example dev",
+    "version": "bun scripts/version-manager.ts",
+    "build": "bun run --cwd packages/api-reference build",
+    "lint": "prettier --check packages/* --check example",
+    "lint:fix": "prettier --check packages/* --check example --write",
+    "release": "bun scripts/version-dev-detector.ts && bun run --cwd packages/api-reference release",
+    "clean": "rm -f -R node_modules/ && bun run --cwd packages/api-reference clean"
+  },
+  "workspaces": [
+    "packages/*",
+    "example"
+  ],
+  "devDependencies": {
+    "bun-types": "latest",
+    "prettier": "3.4.1",
+    "typescript": "^5.0.0"
+  }
+}

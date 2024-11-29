@@ -1,0 +1,20 @@
+name: Code Standards Checking
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.0.33
+      - name: Install Dependencies
+        run: bun install
+      - name: Check Building & Linting
+        run: bun lint && bun run build
