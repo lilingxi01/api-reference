@@ -1,5 +1,6 @@
 import {
   APIReferenceCore,
+  ContentType,
   Route,
   RouteMethod,
   RouteParameter,
@@ -9,6 +10,21 @@ import { OpenAPIV3_1 } from "openapi-types";
 
 function separateNestedTags(tags: string[]): string[][] {
   return tags.map((tag) => tag.split(" > "));
+}
+
+function derefRequestBody(
+  requestBody: OpenAPIV3_1.RequestBodyObject | OpenAPIV3_1.ReferenceObject,
+  spec: OpenAPIV3_1.Document,
+): OpenAPIV3_1.RequestBodyObject | null {
+  if ("$ref" in requestBody) {
+    const refName = requestBody.$ref.replace("#/components/requestBodies/", "");
+    const refRequestBody = spec.components?.requestBodies?.[refName];
+    if (refRequestBody && "$ref" in refRequestBody) {
+      return derefRequestBody(refRequestBody, spec);
+    }
+    return refRequestBody ?? null;
+  }
+  return requestBody;
 }
 
 function derefSchema(
@@ -60,12 +76,37 @@ function derefParameters(
     .filter((param): param is OpenAPIV3_1.ParameterObject => param !== null);
 }
 
+function schemaToRouteParameters(
+  schema: OpenAPIV3_1.SchemaObject,
+  spec: OpenAPIV3_1.Document,
+): RouteParameter[] {
+  const deferredSchema = derefSchema(schema, spec);
+  if (!deferredSchema) {
+    return [];
+  }
+  return Object.entries(deferredSchema.properties ?? {}).map(([key, value]) => {
+    const deferredSchema = derefSchema(value, spec);
+    return {
+      title: deferredSchema?.title ?? undefined,
+      name: key,
+      description: value.description ?? undefined,
+      required: deferredSchema?.required?.includes(key) ?? false,
+      schema: schemaToRouteParameterSchema(value, spec),
+    } satisfies RouteParameter;
+  });
+}
+
 function schemaToRouteParameterSchema(
-  deferredSchema: OpenAPIV3_1.SchemaObject,
+  schema: OpenAPIV3_1.SchemaObject | OpenAPIV3_1.ReferenceObject,
   spec: OpenAPIV3_1.Document,
 ): RouteParameterSchema {
+  const deferredSchema = derefSchema(schema, spec);
   // TODO: Handle union types
-  if (!deferredSchema.type || Array.isArray(deferredSchema.type)) {
+  if (
+    !deferredSchema ||
+    !deferredSchema.type ||
+    Array.isArray(deferredSchema.type)
+  ) {
     return {
       type: "never",
     };
@@ -78,21 +119,7 @@ function schemaToRouteParameterSchema(
   } else if (deferredSchema.type === "object") {
     return {
       type: "object",
-      properties: Object.fromEntries(
-        Object.entries(deferredSchema.properties ?? {}).map(([key, value]) => {
-          const deferredSchema = derefSchema(value, spec);
-          return [
-            key,
-            {
-              title: deferredSchema?.title ?? undefined,
-              name: key,
-              description: value.description ?? undefined,
-              required: deferredSchema?.required?.includes(key) ?? false,
-              schema: schemaToRouteParameterSchema(value, spec),
-            },
-          ] satisfies [string, RouteParameter];
-        }),
-      ),
+      properties: schemaToRouteParameters(deferredSchema, spec),
     };
   } else {
     return {
@@ -117,6 +144,49 @@ function parameterToRouteParameter(
   };
 }
 
+function transformRequestBody(
+  requestBody:
+    | OpenAPIV3_1.RequestBodyObject
+    | OpenAPIV3_1.ReferenceObject
+    | undefined,
+  spec: OpenAPIV3_1.Document,
+): {
+  parameters: RouteParameter[];
+  contentType?: ContentType;
+} | null {
+  if (!requestBody) {
+    return null;
+  }
+  const deferredRequestBody = derefRequestBody(requestBody, spec);
+  if (!deferredRequestBody) {
+    return null;
+  }
+  const rawContentType = Object.keys(deferredRequestBody.content ?? {})[0];
+  const rawSchema = deferredRequestBody.content?.[rawContentType]?.schema;
+  const deferredSchema = derefSchema(rawSchema, spec);
+  let contentType: ContentType;
+  switch (rawContentType) {
+    case "application/json":
+      contentType = ContentType.JSON;
+      break;
+    case "application/x-www-form-urlencoded":
+      contentType = ContentType.URLENCODED;
+      break;
+    case "multipart/form-data":
+      contentType = ContentType.MULTIPART;
+      break;
+    default:
+      contentType = ContentType.JSON;
+      break;
+  }
+  return {
+    parameters: deferredSchema
+      ? schemaToRouteParameters(deferredSchema, spec)
+      : [],
+    contentType: contentType,
+  };
+}
+
 function handlePathItem(params: {
   path: string;
   method: RouteMethod;
@@ -127,7 +197,7 @@ function handlePathItem(params: {
   const derefParams = derefParameters(operation.parameters, spec);
   const pathParams = derefParams.filter((param) => param.in === "path");
   const queryParams = derefParams.filter((param) => param.in === "query");
-  operation.requestBody;
+  const bodyParams = transformRequestBody(operation.requestBody, spec);
   return {
     id: operation.operationId,
     method: method,
@@ -140,7 +210,8 @@ function handlePathItem(params: {
     queryParams: queryParams.map((param) =>
       parameterToRouteParameter(param, spec),
     ),
-    // TODO: Handle request body
+    contentType: bodyParams?.contentType,
+    body: bodyParams?.parameters ?? [],
     // TODO: Handle responses
     response: {},
   };
@@ -167,6 +238,16 @@ export function transformOpenAPISpec(
           path: path,
           method: RouteMethod.GET,
           operation: pathItem.get,
+          spec: spec,
+        }),
+      );
+    }
+    if ("post" in pathItem && pathItem.post) {
+      routes.push(
+        handlePathItem({
+          path: path,
+          method: RouteMethod.POST,
+          operation: pathItem.post,
           spec: spec,
         }),
       );

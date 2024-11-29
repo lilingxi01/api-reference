@@ -25,7 +25,7 @@ export type RouteParameterSchema =
     }
   | {
       type: "object";
-      properties: Record<string, RouteParameter>;
+      properties: RouteParameter[];
     }
   | {
       type: "string";
