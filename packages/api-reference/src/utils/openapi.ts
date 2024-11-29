@@ -4,6 +4,7 @@ import {
   Route,
   RouteMethod,
   RouteParameter,
+  RouteParameters,
   RouteParameterSchema,
 } from "@/types/core";
 import { OpenAPIV3_1 } from "openapi-types";
@@ -79,21 +80,25 @@ function derefParameters(
 function schemaToRouteParameters(
   schema: OpenAPIV3_1.SchemaObject,
   spec: OpenAPIV3_1.Document,
-): RouteParameter[] {
+): RouteParameters {
   const deferredSchema = derefSchema(schema, spec);
   if (!deferredSchema) {
-    return [];
+    return {};
   }
-  return Object.entries(deferredSchema.properties ?? {}).map(([key, value]) => {
-    const deferredSchema = derefSchema(value, spec);
-    return {
-      title: deferredSchema?.title ?? undefined,
-      name: key,
-      description: value.description ?? undefined,
-      required: deferredSchema?.required?.includes(key) ?? false,
-      schema: schemaToRouteParameterSchema(value, spec),
-    } satisfies RouteParameter;
-  });
+  return Object.fromEntries(
+    Object.entries(deferredSchema.properties ?? {}).map(([key, value]) => {
+      const deferredSchema = derefSchema(value, spec);
+      return [
+        key,
+        {
+          title: deferredSchema?.title ?? undefined,
+          description: value.description ?? undefined,
+          required: deferredSchema?.required?.includes(key) ?? false,
+          schema: schemaToRouteParameterSchema(value, spec),
+        },
+      ] satisfies [string, RouteParameter];
+    }),
+  );
 }
 
 function schemaToRouteParameterSchema(
@@ -122,26 +127,50 @@ function schemaToRouteParameterSchema(
       properties: schemaToRouteParameters(deferredSchema, spec),
     };
   } else {
-    return {
-      type: deferredSchema.type,
-    };
+    switch (deferredSchema.type) {
+      case "string":
+        if (deferredSchema.format === "binary") {
+          return {
+            type: "file",
+          };
+        }
+        return {
+          type: "string",
+          format: deferredSchema.format,
+        };
+      case "number":
+        return {
+          type: "number",
+          format: deferredSchema.format,
+        };
+      default:
+        return {
+          type: deferredSchema.type,
+        };
+    }
   }
 }
 
-function parameterToRouteParameter(
-  param: OpenAPIV3_1.ParameterObject,
+function parametersToRouteParameters(
+  params: OpenAPIV3_1.ParameterObject[],
   spec: OpenAPIV3_1.Document,
-): RouteParameter {
-  const deferredSchema = derefSchema(param.schema, spec);
-  return {
-    title: deferredSchema?.title ?? undefined,
-    name: param.name,
-    description: param.description,
-    required: param.required,
-    schema: deferredSchema
-      ? schemaToRouteParameterSchema(deferredSchema, spec)
-      : undefined,
-  };
+): RouteParameters {
+  return Object.fromEntries(
+    params.map((param) => {
+      const deferredSchema = derefSchema(param.schema, spec);
+      return [
+        param.name,
+        {
+          title: deferredSchema?.title ?? undefined,
+          description: param.description,
+          required: param.required,
+          schema: deferredSchema
+            ? schemaToRouteParameterSchema(deferredSchema, spec)
+            : undefined,
+        },
+      ] satisfies [string, RouteParameter];
+    }),
+  );
 }
 
 function transformRequestBody(
@@ -151,7 +180,7 @@ function transformRequestBody(
     | undefined,
   spec: OpenAPIV3_1.Document,
 ): {
-  parameters: RouteParameter[];
+  parameters: RouteParameters;
   contentType?: ContentType;
 } | null {
   if (!requestBody) {
@@ -182,7 +211,7 @@ function transformRequestBody(
   return {
     parameters: deferredSchema
       ? schemaToRouteParameters(deferredSchema, spec)
-      : [],
+      : {},
     contentType: contentType,
   };
 }
@@ -204,14 +233,10 @@ function handlePathItem(params: {
     path: path,
     title: operation.summary ?? path,
     tags: operation.tags ? separateNestedTags(operation.tags) : [],
-    pathParams: pathParams.map((param) =>
-      parameterToRouteParameter(param, spec),
-    ),
-    queryParams: queryParams.map((param) =>
-      parameterToRouteParameter(param, spec),
-    ),
+    pathParams: parametersToRouteParameters(pathParams, spec),
+    queryParams: parametersToRouteParameters(queryParams, spec),
     contentType: bodyParams?.contentType,
-    body: bodyParams?.parameters ?? [],
+    body: bodyParams?.parameters,
     // TODO: Handle responses
     response: {},
   };

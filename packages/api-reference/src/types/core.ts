@@ -1,6 +1,3 @@
-import { OpenAPIV3_1 } from "openapi-types";
-import { z } from "zod";
-
 export enum RouteMethod {
   GET = "get",
   POST = "post",
@@ -25,16 +22,23 @@ export type RouteParameterSchema =
     }
   | {
       type: "object";
-      properties: RouteParameter[];
+      properties: RouteParameters;
+    }
+  | {
+      type: "file";
     }
   | {
       type: "string";
+      // "uuid" | "date" | "date-time" | "password" | "byte" | "textarea"
+      format?: string;
       minLength?: number;
       maxLength?: number;
       pattern?: string;
     }
   | {
       type: "number" | "integer";
+      // "double" | "float" | "int32" | "int64"
+      format?: string;
       minimum?: number;
       maximum?: number;
       exclusiveMinimum?: number;
@@ -52,10 +56,13 @@ export type RouteParameterSchema =
 
 export type RouteParameter = {
   title?: string;
-  name: string;
   description?: string;
   required?: boolean;
   schema?: RouteParameterSchema;
+};
+
+export type RouteParameters = {
+  [key: string]: RouteParameter;
 };
 
 export type Route = {
@@ -67,16 +74,16 @@ export type Route = {
   tags: string[][];
   method: RouteMethod;
   authorization?: RouteAuthorization;
-  pathParams?: RouteParameter[];
-  queryParams?: RouteParameter[];
+  pathParams?: RouteParameters;
+  queryParams?: RouteParameters;
   contentType?: ContentType;
-  body?: RouteParameter[];
-  headers?: RouteParameter[];
+  body?: RouteParameters;
+  headers?: RouteParameters;
   response: {
     [status: number]: {
       contentType: ContentType;
-      body?: RouteParameter[];
-      headers?: RouteParameter[];
+      body?: RouteParameters;
+      headers?: RouteParameters;
     };
   };
 };
