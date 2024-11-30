@@ -3,7 +3,7 @@ name: Code Standards Checking
 on:
   push:
     branches:
-      - '**'
+      - "**"
 
 jobs:
   lint:
@@ -16,5 +16,7 @@ jobs:
           bun-version: 1.0.33
       - name: Install Dependencies
         run: bun install
-      - name: Check Building & Linting
-        run: bun lint && bun run build
+      - name: Check Lint
+        run: bun lint
+      - name: Run Tests
+        run: bun run test
