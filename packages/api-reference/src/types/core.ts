@@ -34,6 +34,7 @@ export type RouteParameterSchema =
       minLength?: number;
       maxLength?: number;
       pattern?: string;
+      default?: string;
     }
   | {
       type: "number" | "integer";
@@ -43,9 +44,11 @@ export type RouteParameterSchema =
       maximum?: number;
       exclusiveMinimum?: number;
       exclusiveMaximum?: number;
+      default?: number;
     }
   | {
       type: "boolean";
+      default?: boolean;
     }
   | {
       type: "null";
@@ -58,11 +61,17 @@ export type RouteParameter = {
   title?: string;
   description?: string;
   required?: boolean;
-  schema?: RouteParameterSchema;
-};
+} & RouteParameterSchema;
 
 export type RouteParameters = {
   [key: string]: RouteParameter;
+};
+
+export type RouteResponse = {
+  contentType: ContentType;
+  description?: string;
+  body?: RouteParameterSchema;
+  headers?: RouteParameters;
 };
 
 export type Route = {
@@ -77,14 +86,10 @@ export type Route = {
   pathParams?: RouteParameters;
   queryParams?: RouteParameters;
   contentType?: ContentType;
-  body?: RouteParameters;
+  body?: RouteParameterSchema;
   headers?: RouteParameters;
-  response: {
-    [status: number]: {
-      contentType: ContentType;
-      body?: RouteParameters;
-      headers?: RouteParameters;
-    };
+  responses: {
+    [status: number]: RouteResponse;
   };
 };
 

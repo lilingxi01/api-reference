@@ -9,15 +9,21 @@
     "lint": "prettier --check packages/* --check example",
     "lint:fix": "prettier --check packages/* --check example --write",
     "release": "bun scripts/version-dev-detector.ts && bun run --cwd packages/api-reference release",
-    "clean": "rm -f -R node_modules/ && bun run --cwd packages/api-reference clean"
+    "clean": "rm -f -R node_modules/ && bun run --cwd packages/api-reference clean",
+    "test": "bun run build && bun i && jest --config jestconfig.json"
   },
   "workspaces": [
     "packages/*",
     "example"
   ],
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "api-reference": "workspace:*",
     "bun-types": "latest",
+    "jest": "^29.7.0",
+    "openapi-types": "^12.1.3",
     "prettier": "3.4.1",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.0.0"
   }
 }

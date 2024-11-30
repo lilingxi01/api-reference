@@ -10,3 +10,6 @@ export const APIReference = {
 };
 
 export { transformOpenAPISpec } from "./utils/openapi";
+
+export type { APIReferenceCore } from "./types/core";
+export { ContentType, RouteMethod } from "./types/core";
