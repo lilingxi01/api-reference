@@ -3,9 +3,9 @@ import {
   ContentType,
   Route,
   RouteMethod,
+  RouteParameterSchema,
   RouteParameter,
   RouteParameters,
-  RouteParameterSchema,
   RouteResponse,
 } from "@/types/core";
 import { fallbackToUndefined, removeUndefinedFields } from "@/utils/clean";
@@ -40,12 +40,16 @@ function derefSchema(
   if (!("$ref" in schema)) {
     return schema;
   }
-  const refName = schema.$ref.replace("#/components/schemas/", "");
+  const { $ref, ...restSchema } = schema;
+  const refName = $ref.replace("#/components/schemas/", "");
   const refSchema = spec.components?.schemas?.[refName];
   if (!refSchema) {
-    return null;
+    return restSchema;
   }
-  return refSchema;
+  return {
+    ...refSchema,
+    ...restSchema,
+  };
 }
 
 function derefParameter(
@@ -116,18 +120,21 @@ function schemaToRouteParameters(
           required: fallbackToUndefined(
             deferredSchema?.required?.includes(key),
           ),
-          ...schemaToRouteParameterSchema(value, spec),
+          ...schemaToRouteParameter(value, spec),
         },
       ] satisfies [string, RouteParameter];
     }),
   );
 }
 
-function schemaToRouteParameterSchema(
+function schemaToRouteParameter(
   schema: OpenAPIV3_1.SchemaObject | OpenAPIV3_1.ReferenceObject,
   spec: OpenAPIV3_1.Document,
-): RouteParameterSchema {
+): RouteParameter {
   const deferredSchema = derefSchema(schema, spec);
+  const basicSchema = {
+    description: deferredSchema?.description ?? undefined,
+  };
   // TODO: Handle union types
   if (
     !deferredSchema ||
@@ -135,16 +142,19 @@ function schemaToRouteParameterSchema(
     Array.isArray(deferredSchema.type)
   ) {
     return {
+      ...basicSchema,
       type: "never",
     };
   }
   if (deferredSchema.type === "array") {
     return {
+      ...basicSchema,
       type: "array",
-      items: schemaToRouteParameterSchema(deferredSchema.items, spec),
+      items: schemaToRouteParameter(deferredSchema.items, spec),
     };
   } else if (deferredSchema.type === "object") {
     return {
+      ...basicSchema,
       type: "object",
       properties: schemaToRouteParameters(deferredSchema, spec),
     };
@@ -153,17 +163,21 @@ function schemaToRouteParameterSchema(
       case "string":
         if (deferredSchema.format === "binary") {
           return {
+            ...basicSchema,
             type: "file",
           };
         }
         return {
+          ...basicSchema,
           type: "string",
           format: deferredSchema.format,
+          enum: deferredSchema.enum,
           default: deferredSchema.default,
         };
       case "number":
       case "integer":
         return {
+          ...basicSchema,
           type: deferredSchema.type,
           format: deferredSchema.format,
           minimum: deferredSchema.minimum,
@@ -172,6 +186,7 @@ function schemaToRouteParameterSchema(
         };
       default:
         return {
+          ...basicSchema,
           type: deferredSchema.type,
         };
     }
@@ -192,7 +207,7 @@ function parametersToRouteParameters(
           description: param.description,
           required: fallbackToUndefined(param.required),
           ...(deferredSchema
-            ? schemaToRouteParameterSchema(deferredSchema, spec)
+            ? schemaToRouteParameter(deferredSchema, spec)
             : {
                 type: "never",
               }),
@@ -227,7 +242,7 @@ function transformRequestBody(
     return null;
   }
   return {
-    content: schemaToRouteParameterSchema(deferredSchema, spec),
+    content: schemaToRouteParameter(deferredSchema, spec),
     contentType: contentType,
   };
 }
@@ -266,10 +281,10 @@ function transformResponses(
       return [
         statusCodeNumber,
         {
-          contentType: contentTypeToEnum(contentType),
+          contentType: contentType ? contentTypeToEnum(contentType) : undefined,
           description: deferredResponse?.description,
           body: deferredSchema
-            ? schemaToRouteParameterSchema(deferredSchema, spec)
+            ? schemaToRouteParameter(deferredSchema, spec)
             : undefined,
         },
       ] satisfies [number, RouteResponse];

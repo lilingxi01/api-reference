@@ -31,6 +31,7 @@ export type RouteParameterSchema =
       type: "string";
       // "uuid" | "date" | "date-time" | "password" | "byte" | "textarea"
       format?: string;
+      enum?: string[];
       minLength?: number;
       maxLength?: number;
       pattern?: string;
@@ -68,7 +69,7 @@ export type RouteParameters = {
 };
 
 export type RouteResponse = {
-  contentType: ContentType;
+  contentType?: ContentType;
   description?: string;
   body?: RouteParameterSchema;
   headers?: RouteParameters;
