@@ -620,7 +620,6 @@ describe("Special types transformation", () => {
         "admin",
         "user",
       ]);
-      console.log(transformedSpec.routes[0].body.properties);
       expect(
         transformedSpec.routes[0].body.properties.role.description,
       ).toEqual("User's role");
