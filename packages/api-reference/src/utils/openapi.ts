@@ -308,6 +308,7 @@ function handlePathItem(params: {
     method: method,
     path: path,
     title: operation.summary ?? path,
+    description: operation.description,
     tags: operation.tags ? separateNestedTags(operation.tags) : [],
     pathParams: fallbackToUndefined(
       parametersToRouteParameters(pathParams, spec),

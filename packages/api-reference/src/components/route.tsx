@@ -31,8 +31,16 @@ export function RouteProvider({
 
 export const RouteComponents = {
   Root: RouteProvider,
+  Title: () => {
+    const { route } = useRouteContext();
+    return <span>{route.title}</span>;
+  },
   Path: () => {
     const { route } = useRouteContext();
     return <span>{route.path}</span>;
+  },
+  Description: () => {
+    const { route } = useRouteContext();
+    return <span>{route.description}</span>;
   },
 };

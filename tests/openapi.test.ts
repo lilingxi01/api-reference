@@ -130,6 +130,7 @@ describe("GET request transformation", () => {
         path: "/users",
         method: RouteMethod.GET,
         title: "List Users",
+        description: "List all users.",
         tags: [["Users"]],
         queryParams: {
           limit: {
@@ -176,6 +177,7 @@ describe("GET request transformation", () => {
         path: "/users/{user_id}",
         method: RouteMethod.GET,
         title: "Get User",
+        description: "Get the details of a given user.",
         tags: [["Users"]],
         pathParams: {
           user_id: {
@@ -367,6 +369,7 @@ describe("POST request transformation", () => {
         path: "/users",
         method: RouteMethod.GET,
         title: "List Users",
+        description: "List all users.",
         tags: [["Users"]],
         queryParams: {
           limit: {
@@ -413,6 +416,7 @@ describe("POST request transformation", () => {
         path: "/users",
         method: RouteMethod.POST,
         title: "Create User",
+        description: "Create a new user.",
         tags: [["Users"]],
         contentType: ContentType.MULTIPART,
         body: {
@@ -550,6 +554,7 @@ describe("Special types transformation", () => {
         path: "/users",
         method: RouteMethod.POST,
         title: "Create User",
+        description: "Create a new user.",
         tags: [["Users"]],
         contentType: ContentType.MULTIPART,
         body: {
