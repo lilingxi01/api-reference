@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
-    "target": "es2017",
+    "target": "es2020",
     "lib": ["dom", "dom.iterable", "esnext"],
     "types": ["node", "bun-types"],
     "allowJs": true,
@@ -11,11 +11,11 @@
     "noEmit": true,
     "noImplicitAny": false,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "es2020",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": false,
     "baseUrl": "src",
     "paths": {

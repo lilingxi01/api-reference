@@ -1,11 +1,13 @@
-import { APIReference, transformOpenAPISpec } from "api-reference";
+import { transformOpenAPISpec } from "api-reference/utils";
 import spec from "./openapi.json";
+import { ReferenceView } from "@/app/reference-view";
 
 export default function Page() {
-  console.log(JSON.stringify(transformOpenAPISpec(spec as any), null, 2));
+  const transformedSpec = transformOpenAPISpec(spec as any);
+  console.log(JSON.stringify(transformedSpec, null, 2));
   return (
     <div>
-      <APIReference.Provider />
+      <ReferenceView spec={transformedSpec} />
     </div>
   );
 }

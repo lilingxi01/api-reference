@@ -1,15 +1,14 @@
-import React from "react";
+"use client";
 
-function Provider(): JSX.Element {
-  return <div>API Reference</div>;
-}
+import { RootProvider } from "@/components/root";
+import { RoutesProvider } from "@/components/routes";
+import { RouteComponents } from "@/components/route";
 
-// Placeholder for project name.
 export const APIReference = {
-  Provider,
+  Root: RootProvider,
+  Routes: RoutesProvider,
+  Route: RouteComponents,
 };
-
-export { transformOpenAPISpec } from "./utils/openapi";
 
 export type { APIReferenceCore } from "./types/core";
 export { ContentType, RouteMethod } from "./types/core";

@@ -1,5 +1,3 @@
-"use client";
-
 import { APIReferenceCore } from "@/types/core";
 import React, { createContext, useContext } from "react";
 
@@ -17,12 +15,15 @@ export function useAPIReferenceContext(): APIReferenceContextType {
   return context;
 }
 
-type ProviderProps = {
+type RootProviderProps = {
   spec: APIReferenceCore;
   children: React.ReactNode;
 };
 
-export function Provider({ spec, children }: ProviderProps): JSX.Element {
+export function RootProvider({
+  spec,
+  children,
+}: RootProviderProps): JSX.Element {
   return (
     <APIReferenceContext.Provider value={{ spec }}>
       {children}

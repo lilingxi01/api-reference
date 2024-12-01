@@ -1,10 +1,6 @@
 import { describe, test, expect } from "@jest/globals";
-import {
-  transformOpenAPISpec,
-  APIReferenceCore,
-  ContentType,
-  RouteMethod,
-} from "api-reference";
+import { APIReferenceCore, ContentType, RouteMethod } from "api-reference";
+import { transformOpenAPISpec } from "api-reference/utils";
 import { OpenAPIV3_1 } from "openapi-types";
 
 describe("GET request transformation", () => {

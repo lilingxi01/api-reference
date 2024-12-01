@@ -6,7 +6,8 @@
     "README.md"
   ],
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./utils": "./dist/utils.js"
   },
   "repository": "https://github.com/lilingxi01/api-reference",
   "homepage": "https://api.lingxi.li",
